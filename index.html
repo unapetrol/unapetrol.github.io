@@ -1632,7 +1632,7 @@ body {
 
         <div class="login-nota">
           <i class="fa-solid fa-shield-halved"></i>
-          Acceso local restaurado · <strong>admin / admin</strong>
+          Acceso operativo restaurado · <strong>admin / admin</strong>
         </div>
       </div>
     </section>
@@ -1990,15 +1990,27 @@ async function sha256(t) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
+function normalizarTextoLogin(valor) {
+  return String(valor || '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim();
+}
 async function validarCredenciales(u, p) {
-  if (u.toLowerCase() !== 'admin') return false;
-  if (p === 'admin') return true; // acceso operativo local restaurado
-  try { return await sha256(p) === HASH; }
+  const usuario = normalizarTextoLogin(u).toLowerCase();
+  const clave = normalizarTextoLogin(p);
+
+  // Acceso administrativo local restaurado.
+  // Usuario: admin | Contraseña: admin
+  if (usuario === 'admin' && clave === 'admin') return true;
+
+  if (usuario !== 'admin') return false;
+  try { return await sha256(clave) === HASH; }
   catch (err) { return false; }
 }
 async function ejecutarLogin() {
-  const u = document.getElementById('login-usuario').value.trim();
-  const p = document.getElementById('login-clave').value;
+  const u = normalizarTextoLogin(document.getElementById('login-usuario').value);
+  const p = normalizarTextoLogin(document.getElementById('login-clave').value);
   const panel = document.getElementById('login-panel');
 
   if (await validarCredenciales(u, p)) {
